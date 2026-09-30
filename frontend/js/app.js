@@ -34,10 +34,28 @@ function hideSpinner() {
 // Show Bootstrap alert
 function showAlert(message, type = "danger") {
   alertContainer.innerHTML = `
-    <div class="alert alert-${type}" role="alert">
+    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
       ${message}
+      <button
+        type="button"
+        class="btn-close"
+        data-bs-dismiss="alert"
+        aria-label="Close">
+      </button>
     </div>
   `;
+
+  setTimeout(() => {
+    const alert = alertContainer.querySelector(".alert");
+
+    if (alert) {
+      alert.classList.remove("show");
+
+      setTimeout(() => {
+        alert.remove();
+      }, 150);
+    }
+  }, 3000);
 }
 
 

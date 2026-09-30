@@ -292,7 +292,15 @@ section .card:hover {
   position: relative;
   height: 350px;
   max-width: 600px;
+  width: 100%;
   margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.chart-container canvas {
+  max-width: 100%;
 }
 
 @media (max-width: 576px) {
@@ -300,7 +308,6 @@ section .card:hover {
     height: 280px;
   }
 }
-
 /* =========================
    Dark Mode
 ========================= */
@@ -367,8 +374,55 @@ body.dark-mode .btn-close {
 .theme-toggle {
   border-radius: 10px;
 }
+/* Dark Mode - Select Options Fix */
+
+body.dark-mode select,
+body.dark-mode select option,
+body.dark-mode .form-select,
+body.dark-mode .form-select option {
+  background-color: #374151 !important;
+  color: #ffffff !important;
+}
+
+body.dark-mode select option,
+body.dark-mode .form-select option {
+  background-color: #1f2937 !important;
+  color: #ffffff !important;
+}
 
 #exportCsvBtn {
   border-radius: 9px;
   font-weight: 600;
+}
+
+/* =========================
+   Floating Alerts
+========================= */
+
+/* =========================
+   Floating Alerts
+========================= */
+
+#alertContainer {
+  position: fixed;
+  top: 85px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100% - 40px));
+  z-index: 9999;
+}
+
+#alertContainer .alert {
+  margin-bottom: 0;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+
+@media (max-width: 576px) {
+  #alertContainer {
+    top: 70px;
+    right: 15px;
+    width: calc(100% - 30px);
+  }
 }

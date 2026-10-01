@@ -522,22 +522,9 @@ This keeps the displayed information synchronized with the server and makes the 
 
 ---
 
-## Final Delivery
+## Project Links
 
-The final project includes:
-
-- Frontend
-- Backend
-- PostgreSQL database schema
-- REST API
-- CRUD functionality
-- Validation
-- Responsive design
-- Search and filtering
-- Expense chart
-- Dark Mode
-- CSV export
-- Screenshots
-- README documentation
+- [GitHub Repository](https://github.com/basel-aljerbi/expense-tracker)
+- [Watch the Expense Tracker Demo](https://1drv.ms/v/c/8bea9caa4cffa6cb/IQB7cMN8SD_FTqA1LCL1G0e4AZ33UvcDKT9jVzdMuuyo4C0?e=kl0He5)
 
 The project can be run locally by following the setup instructions above.

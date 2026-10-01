@@ -20,6 +20,9 @@ main {
 .navbar {
   background: #111827 !important;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
 }
 
 .navbar-brand {

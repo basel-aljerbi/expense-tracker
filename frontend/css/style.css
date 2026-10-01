@@ -399,10 +399,6 @@ body.dark-mode .form-select option {
    Floating Alerts
 ========================= */
 
-/* =========================
-   Floating Alerts
-========================= */
-
 #alertContainer {
   position: fixed;
   top: 85px;

@@ -4,6 +4,7 @@ const { Pool } = require("pg");
 require("dotenv").config();
 
 const app = express();
+const PORT = 3000;
 
 app.use(express.json());
 app.use(cors());
@@ -16,10 +17,79 @@ const pool = new Pool({
   port: process.env.DB_PORT
 });
 
+const allowedCategories = [
+  "Food",
+  "Transport",
+  "Bills",
+  "Entertainment",
+  "Other"
+];
 
-// ===============================
+
+// =========================
+// Helpers
+// =========================
+
+function validateExpense({
+  title,
+  amount,
+  category,
+  date
+}) {
+  if (
+    !title ||
+    typeof title !== "string" ||
+    title.trim() === ""
+  ) {
+    return "Title is required";
+  }
+
+  if (
+    typeof amount !== "number" ||
+    !Number.isFinite(amount)
+  ) {
+    return "Amount must be a number";
+  }
+
+  if (amount <= 0) {
+    return "Amount must be greater than 0";
+  }
+
+  if (!allowedCategories.includes(category)) {
+    return "Invalid category";
+  }
+
+  if (!date || typeof date !== "string") {
+    return "Date is required";
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return "Invalid date";
+  }
+
+  return null;
+}
+
+function formatExpense(expense) {
+  return {
+    ...expense,
+    amount: Number(expense.amount)
+  };
+}
+
+function parseExpenseId(id) {
+  const expenseId = Number(id);
+
+  return Number.isInteger(expenseId)
+    ? expenseId
+    : null;
+}
+
+
+// =========================
 // GET ALL EXPENSES
-// ===============================
+// =========================
+
 app.get("/api/expenses", async (req, res) => {
   try {
     const result = await pool.query(
@@ -29,10 +99,7 @@ app.get("/api/expenses", async (req, res) => {
        ORDER BY id`
     );
 
-    const expenses = result.rows.map((expense) => ({
-      ...expense,
-      amount: Number(expense.amount)
-    }));
+    const expenses = result.rows.map(formatExpense);
 
     res.json(expenses);
 
@@ -46,14 +113,15 @@ app.get("/api/expenses", async (req, res) => {
 });
 
 
-// ===============================
+// =========================
 // GET ONE EXPENSE
-// ===============================
+// =========================
+
 app.get("/api/expenses/:id", async (req, res) => {
   try {
-    const id = Number(req.params.id);
+    const id = parseExpenseId(req.params.id);
 
-    if (isNaN(id)) {
+    if (id === null) {
       return res.status(404).json({
         message: "Expense not found"
       });
@@ -73,12 +141,7 @@ app.get("/api/expenses/:id", async (req, res) => {
       });
     }
 
-    const expense = {
-      ...result.rows[0],
-      amount: Number(result.rows[0].amount)
-    };
-
-    res.json(expense);
+    res.json(formatExpense(result.rows[0]));
 
   } catch (error) {
     console.error(error);
@@ -90,83 +153,53 @@ app.get("/api/expenses/:id", async (req, res) => {
 });
 
 
-// ===============================
+// =========================
 // CREATE EXPENSE
-// ===============================
+// =========================
+
 app.post("/api/expenses", async (req, res) => {
   try {
-    const { title, amount, category, date } = req.body;
+    const {
+      title,
+      amount,
+      category,
+      date
+    } = req.body;
 
+    const validationError = validateExpense({
+      title,
+      amount,
+      category,
+      date
+    });
 
-    // Validate title
-    if (!title || typeof title !== "string" || title.trim() === "") {
+    if (validationError) {
       return res.status(400).json({
-        message: "Title is required"
+        message: validationError
       });
     }
 
-
-    // Validate amount
-    if (typeof amount !== "number" || !Number.isFinite(amount)) {
-      return res.status(400).json({
-        message: "Amount must be a number"
-      });
-    }
-
-    if (amount <= 0) {
-      return res.status(400).json({
-        message: "Amount must be greater than 0"
-      });
-    }
-
-
-    // Validate category
-    const allowedCategories = [
-      "Food",
-      "Transport",
-      "Bills",
-      "Entertainment",
-      "Other"
-    ];
-
-    if (!allowedCategories.includes(category)) {
-      return res.status(400).json({
-        message: "Invalid category"
-      });
-    }
-
-
-    // Validate date
-    if (!date || typeof date !== "string") {
-      return res.status(400).json({
-        message: "Date is required"
-      });
-    }
-
-    // Make sure date is YYYY-MM-DD
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({
-        message: "Invalid date"
-      });
-    }
-
-
-    // Insert expense
     const result = await pool.query(
-      `INSERT INTO expenses (title, amount, category, date)
+      `INSERT INTO expenses (
+         title,
+         amount,
+         category,
+         date
+       )
        VALUES ($1, $2, $3, $4)
        RETURNING id, title, amount, category,
                  TO_CHAR(date, 'YYYY-MM-DD') AS date`,
-      [title.trim(), amount, category, date]
+      [
+        title.trim(),
+        amount,
+        category,
+        date
+      ]
     );
 
-
-    const expense = {
-      ...result.rows[0],
-      amount: Number(result.rows[0].amount)
-    };
-
-    res.status(201).json(expense);
+    res.status(201).json(
+      formatExpense(result.rows[0])
+    );
 
   } catch (error) {
     console.error(error);
@@ -178,76 +211,40 @@ app.post("/api/expenses", async (req, res) => {
 });
 
 
-// ===============================
+// =========================
 // UPDATE EXPENSE
-// ===============================
+// =========================
+
 app.put("/api/expenses/:id", async (req, res) => {
   try {
-    const id = Number(req.params.id);
+    const id = parseExpenseId(req.params.id);
 
-    if (isNaN(id)) {
+    if (id === null) {
       return res.status(404).json({
         message: "Expense not found"
       });
     }
 
-    const { title, amount, category, date } = req.body;
+    const {
+      title,
+      amount,
+      category,
+      date
+    } = req.body;
 
+    const validationError = validateExpense({
+      title,
+      amount,
+      category,
+      date
+    });
 
-    // Validate title
-    if (!title || typeof title !== "string" || title.trim() === "") {
+    if (validationError) {
       return res.status(400).json({
-        message: "Title is required"
+        message: validationError
       });
     }
 
-
-    // Validate amount
-    if (typeof amount !== "number" || !Number.isFinite(amount)) {
-      return res.status(400).json({
-        message: "Amount must be a number"
-      });
-    }
-
-    if (amount <= 0) {
-      return res.status(400).json({
-        message: "Amount must be greater than 0"
-      });
-    }
-
-
-    // Validate category
-    const allowedCategories = [
-      "Food",
-      "Transport",
-      "Bills",
-      "Entertainment",
-      "Other"
-    ];
-
-    if (!allowedCategories.includes(category)) {
-      return res.status(400).json({
-        message: "Invalid category"
-      });
-    }
-
-
-    // Validate date
-    if (!date || typeof date !== "string") {
-      return res.status(400).json({
-        message: "Date is required"
-      });
-    }
-
-    // Make sure date is YYYY-MM-DD
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return res.status(400).json({
-        message: "Invalid date"
-      });
-    }
-
-
-    // Update expense
     const result = await pool.query(
       `UPDATE expenses
        SET title = $1,
@@ -257,9 +254,14 @@ app.put("/api/expenses/:id", async (req, res) => {
        WHERE id = $5
        RETURNING id, title, amount, category,
                  TO_CHAR(date, 'YYYY-MM-DD') AS date`,
-      [title.trim(), amount, category, date, id]
+      [
+        title.trim(),
+        amount,
+        category,
+        date,
+        id
+      ]
     );
-
 
     if (result.rows.length === 0) {
       return res.status(404).json({
@@ -267,13 +269,9 @@ app.put("/api/expenses/:id", async (req, res) => {
       });
     }
 
-
-    const expense = {
-      ...result.rows[0],
-      amount: Number(result.rows[0].amount)
-    };
-
-    res.json(expense);
+    res.json(
+      formatExpense(result.rows[0])
+    );
 
   } catch (error) {
     console.error(error);
@@ -285,14 +283,15 @@ app.put("/api/expenses/:id", async (req, res) => {
 });
 
 
-// ===============================
+// =========================
 // DELETE EXPENSE
-// ===============================
+// =========================
+
 app.delete("/api/expenses/:id", async (req, res) => {
   try {
-    const id = Number(req.params.id);
+    const id = parseExpenseId(req.params.id);
 
-    if (isNaN(id)) {
+    if (id === null) {
       return res.status(404).json({
         message: "Expense not found"
       });
@@ -303,13 +302,11 @@ app.delete("/api/expenses/:id", async (req, res) => {
       [id]
     );
 
-
     if (result.rows.length === 0) {
       return res.status(404).json({
         message: "Expense not found"
       });
     }
-
 
     res.json({
       message: "Expense deleted successfully"
@@ -325,9 +322,10 @@ app.delete("/api/expenses/:id", async (req, res) => {
 });
 
 
-// ===============================
+// =========================
 // START SERVER
-// ===============================
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+// =========================
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

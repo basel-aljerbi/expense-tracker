@@ -3,45 +3,85 @@
 const API_URL = "http://localhost:3000/api/expenses";
 
 let expenses = [];
-
-// DOM elements
-const expensesTableBody = document.getElementById("expensesTableBody");
-const totalAmount = document.getElementById("totalAmount");
-const expenseCount = document.getElementById("expenseCount");
-const highestExpense = document.getElementById("highestExpense");
-const loadingSpinner = document.getElementById("loadingSpinner");
-const alertContainer = document.getElementById("alertContainer");
-const categoryFilter = document.getElementById("categoryFilter");
-const searchInput = document.getElementById("searchInput");
-const expenseChartCanvas = document.getElementById("expenseChart");
-const themeToggle = document.getElementById("themeToggle");
-const exportCsvBtn = document.getElementById("exportCsvBtn");
-
 let expenseChart = null;
 
-// Show loading spinner
+
+// =========================
+// DOM Elements
+// =========================
+
+const expensesTableBody =
+  document.getElementById("expensesTableBody");
+
+const totalAmount =
+  document.getElementById("totalAmount");
+
+const expenseCount =
+  document.getElementById("expenseCount");
+
+const highestExpense =
+  document.getElementById("highestExpense");
+
+const loadingSpinner =
+  document.getElementById("loadingSpinner");
+
+const alertContainer =
+  document.getElementById("alertContainer");
+
+const categoryFilter =
+  document.getElementById("categoryFilter");
+
+const searchInput =
+  document.getElementById("searchInput");
+
+const expenseChartCanvas =
+  document.getElementById("expenseChart");
+
+const themeToggle =
+  document.getElementById("themeToggle");
+
+const exportCsvBtn =
+  document.getElementById("exportCsvBtn");
+
+const expenseForm =
+  document.getElementById("expenseForm");
+
+const editExpenseForm =
+  document.getElementById("editExpenseForm");
+
+const editExpenseModalElement =
+  document.getElementById("editExpenseModal");
+
+const editExpenseModal =
+  new bootstrap.Modal(editExpenseModalElement);
+
+
+// =========================
+// UI Helpers
+// =========================
+
 function showSpinner() {
   loadingSpinner.classList.remove("d-none");
 }
 
-
-// Hide loading spinner
 function hideSpinner() {
   loadingSpinner.classList.add("d-none");
 }
 
-
-// Show Bootstrap alert
 function showAlert(message, type = "danger") {
   alertContainer.innerHTML = `
-    <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+    <div
+      class="alert alert-${type} alert-dismissible fade show"
+      role="alert"
+    >
       ${message}
+
       <button
         type="button"
         class="btn-close"
         data-bs-dismiss="alert"
-        aria-label="Close">
-      </button>
+        aria-label="Close"
+      ></button>
     </div>
   `;
 
@@ -59,7 +99,10 @@ function showAlert(message, type = "danger") {
 }
 
 
-// Get all expenses from API
+// =========================
+// API
+// =========================
+
 async function getExpenses() {
   try {
     showSpinner();
@@ -75,6 +118,7 @@ async function getExpenses() {
   } catch (error) {
     showAlert("Failed to load expenses.");
     console.error(error);
+
     return [];
 
   } finally {
@@ -83,7 +127,10 @@ async function getExpenses() {
 }
 
 
-// Render expenses table
+// =========================
+// Rendering
+// =========================
+
 function renderTable(list) {
   expensesTableBody.innerHTML = "";
 
@@ -104,14 +151,21 @@ function renderTable(list) {
 
     row.innerHTML = `
       <td>${expense.title}</td>
-      <td>$${Number(expense.amount).toFixed(2)}</td>
+
+      <td>
+        $${Number(expense.amount).toFixed(2)}
+      </td>
+
       <td>${expense.category}</td>
+
       <td>${expense.date}</td>
+
       <td>
         <button
           class="btn btn-sm btn-warning me-1 edit-btn"
           data-id="${expense.id}"
-          title="Edit expense">
+          title="Edit expense"
+        >
           <i class="bi bi-pencil"></i>
           Edit
         </button>
@@ -119,7 +173,8 @@ function renderTable(list) {
         <button
           class="btn btn-sm btn-danger delete-btn"
           data-id="${expense.id}"
-          title="Delete expense">
+          title="Delete expense"
+        >
           <i class="bi bi-trash"></i>
           Delete
         </button>
@@ -130,174 +185,7 @@ function renderTable(list) {
   });
 }
 
-async function deleteExpense(id) {
-  const confirmed = confirm(
-    "Are you sure you want to delete this expense?"
-  );
 
-  if (!confirmed) {
-    return;
-  }
-
-  try {
-    showSpinner();
-
-    const response = await fetch(`${API_URL}/${id}`, {
-      method: "DELETE"
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.message || "Failed to delete expense"
-      );
-    }
-
-    showAlert(
-      "Expense deleted successfully.",
-      "success"
-    );
-
-    await refresh();
-
-  } catch (error) {
-    showAlert(error.message);
-    console.error(error);
-
-  } finally {
-    hideSpinner();
-  }
-}
-
-
-// Edit modal
-const editExpenseForm =
-  document.getElementById("editExpenseForm");
-
-const editExpenseModalElement =
-  document.getElementById("editExpenseModal");
-
-const editExpenseModal =
-  new bootstrap.Modal(editExpenseModalElement);
-
-
-// Handle table actions
-expensesTableBody.addEventListener("click", (event) => {
-  const button = event.target.closest("button");
-
-  if (!button) {
-    return;
-  }
-
-  const id = Number(button.dataset.id);
-
-  // Delete expense
-  if (button.classList.contains("delete-btn")) {
-    deleteExpense(id);
-    return;
-  }
-
-  // Edit expense
-  if (button.classList.contains("edit-btn")) {
-    const expense = expenses.find(
-      (expense) => expense.id === id
-    );
-
-    if (!expense) {
-      showAlert("Expense not found.");
-      return;
-    }
-
-    document.getElementById("editExpenseId").value = expense.id;
-    document.getElementById("editTitle").value = expense.title;
-    document.getElementById("editAmount").value = expense.amount;
-    document.getElementById("editCategory").value = expense.category;
-    document.getElementById("editDate").value = expense.date;
-
-    editExpenseModal.show();
-  }
-});
-
-// Update expense
-editExpenseForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const id = document.getElementById("editExpenseId").value;
-  const title = document.getElementById("editTitle").value.trim();
-  const amount = Number(
-    document.getElementById("editAmount").value
-  );
-  const category =
-    document.getElementById("editCategory").value;
-  const date =
-    document.getElementById("editDate").value;
-
-  // Frontend validation
-  if (!title) {
-    showAlert("Title is required.");
-    return;
-  }
-
-  if (!Number.isFinite(amount) || amount <= 0) {
-    showAlert("Amount must be greater than 0.");
-    return;
-  }
-
-  if (!category) {
-    showAlert("Category is required.");
-    return;
-  }
-
-  if (!date) {
-    showAlert("Date is required.");
-    return;
-  }
-
-  try {
-    showSpinner();
-
-    const response = await fetch(`${API_URL}/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        title,
-        amount,
-        category,
-        date
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(
-        data.message || "Failed to update expense"
-      );
-    }
-
-    editExpenseModal.hide();
-
-    showAlert(
-      "Expense updated successfully.",
-      "success"
-    );
-
-    await refresh();
-
-  } catch (error) {
-    showAlert(error.message);
-    console.error(error);
-
-  } finally {
-    hideSpinner();
-  }
-});
-
-
-// Render summary cards
 function renderSummary(list) {
   const total = list.reduce(
     (sum, expense) => sum + Number(expense.amount),
@@ -306,17 +194,23 @@ function renderSummary(list) {
 
   const count = list.length;
 
-  const highest = list.length > 0
-    ? Math.max(...list.map((expense) => Number(expense.amount)))
-    : 0;
+  const highest =
+    list.length > 0
+      ? Math.max(
+          ...list.map((expense) => Number(expense.amount))
+        )
+      : 0;
 
-  totalAmount.textContent = `$${total.toFixed(2)}`;
+  totalAmount.textContent =
+    `$${total.toFixed(2)}`;
+
   expenseCount.textContent = count;
-  highestExpense.textContent = `$${highest.toFixed(2)}`;
+
+  highestExpense.textContent =
+    `$${highest.toFixed(2)}`;
 }
 
 
-// Render expenses chart
 function renderChart(list) {
   const categoryTotals = {
     Food: 0,
@@ -367,10 +261,392 @@ function renderChart(list) {
   });
 }
 
-// Export expenses to CSV
+
+// =========================
+// Search & Filter
+// =========================
+
+function getFilteredExpenses() {
+  const selectedCategory =
+    categoryFilter.value;
+
+  const searchTerm =
+    searchInput.value.trim().toLowerCase();
+
+  return expenses.filter((expense) => {
+    const matchesCategory =
+      selectedCategory === "All" ||
+      expense.category === selectedCategory;
+
+    const matchesSearch =
+      expense.title
+        .toLowerCase()
+        .includes(searchTerm) ||
+      expense.category
+        .toLowerCase()
+        .includes(searchTerm);
+
+    return matchesCategory && matchesSearch;
+  });
+}
+
+
+function applyFilters() {
+  const filteredExpenses =
+    getFilteredExpenses();
+
+  renderTable(filteredExpenses);
+  renderSummary(filteredExpenses);
+  renderChart(filteredExpenses);
+}
+
+categoryFilter.addEventListener(
+  "change",
+  applyFilters
+);
+
+searchInput.addEventListener(
+  "input",
+  applyFilters
+);
+
+
+// =========================
+// Refresh
+// =========================
+
+async function refresh() {
+  expenses = await getExpenses();
+
+  renderTable(expenses);
+  renderSummary(expenses);
+  renderChart(expenses);
+}
+
+
+// =========================
+// Delete Expense
+// =========================
+
+async function deleteExpense(id) {
+  const confirmed = confirm(
+    "Are you sure you want to delete this expense?"
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    showSpinner();
+
+    const response = await fetch(
+      `${API_URL}/${id}`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Failed to delete expense"
+      );
+    }
+
+    showAlert(
+      "Expense deleted successfully.",
+      "success"
+    );
+
+    await refresh();
+
+  } catch (error) {
+    showAlert(error.message);
+    console.error(error);
+
+  } finally {
+    hideSpinner();
+  }
+}
+
+
+// =========================
+// Edit & Delete Table Actions
+// =========================
+
+expensesTableBody.addEventListener(
+  "click",
+  (event) => {
+    const button =
+      event.target.closest("button");
+
+    if (!button) {
+      return;
+    }
+
+    const id =
+      Number(button.dataset.id);
+
+    if (button.classList.contains("delete-btn")) {
+      deleteExpense(id);
+      return;
+    }
+
+    if (button.classList.contains("edit-btn")) {
+      const expense = expenses.find(
+        (expense) => expense.id === id
+      );
+
+      if (!expense) {
+        showAlert("Expense not found.");
+        return;
+      }
+
+      document.getElementById(
+        "editExpenseId"
+      ).value = expense.id;
+
+      document.getElementById(
+        "editTitle"
+      ).value = expense.title;
+
+      document.getElementById(
+        "editAmount"
+      ).value = expense.amount;
+
+      document.getElementById(
+        "editCategory"
+      ).value = expense.category;
+
+      document.getElementById(
+        "editDate"
+      ).value = expense.date;
+
+      editExpenseModal.show();
+    }
+  }
+);
+
+
+// =========================
+// Update Expense
+// =========================
+
+editExpenseForm.addEventListener(
+  "submit",
+  async (event) => {
+    event.preventDefault();
+
+    const id =
+      document.getElementById(
+        "editExpenseId"
+      ).value;
+
+    const title =
+      document.getElementById(
+        "editTitle"
+      ).value.trim();
+
+    const amount =
+      Number(
+        document.getElementById(
+          "editAmount"
+        ).value
+      );
+
+    const category =
+      document.getElementById(
+        "editCategory"
+      ).value;
+
+    const date =
+      document.getElementById(
+        "editDate"
+      ).value;
+
+    if (!title) {
+      showAlert("Title is required.");
+      return;
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showAlert("Amount must be greater than 0.");
+      return;
+    }
+
+    if (!category) {
+      showAlert("Category is required.");
+      return;
+    }
+
+    if (!date) {
+      showAlert("Date is required.");
+      return;
+    }
+
+    try {
+      showSpinner();
+
+      const response = await fetch(
+        `${API_URL}/${id}`,
+        {
+          method: "PUT",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            title,
+            amount,
+            category,
+            date
+          })
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          "Failed to update expense"
+        );
+      }
+
+      editExpenseModal.hide();
+
+      showAlert(
+        "Expense updated successfully.",
+        "success"
+      );
+
+      await refresh();
+
+    } catch (error) {
+      showAlert(error.message);
+      console.error(error);
+
+    } finally {
+      hideSpinner();
+    }
+  }
+);
+
+
+// =========================
+// Add Expense
+// =========================
+
+expenseForm.addEventListener(
+  "submit",
+  async (event) => {
+    event.preventDefault();
+
+    const title =
+      document.getElementById(
+        "title"
+      ).value.trim();
+
+    const amount =
+      Number(
+        document.getElementById(
+          "amount"
+        ).value
+      );
+
+    const category =
+      document.getElementById(
+        "category"
+      ).value;
+
+    const date =
+      document.getElementById(
+        "date"
+      ).value;
+
+    if (!title) {
+      showAlert("Title is required.");
+      return;
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showAlert("Amount must be greater than 0.");
+      return;
+    }
+
+    if (!category) {
+      showAlert("Category is required.");
+      return;
+    }
+
+    if (!date) {
+      showAlert("Date is required.");
+      return;
+    }
+
+    try {
+      showSpinner();
+
+      const response =
+        await fetch(API_URL, {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            title,
+            amount,
+            category,
+            date
+          })
+        });
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+          "Failed to add expense"
+        );
+      }
+
+      showAlert(
+        "Expense added successfully.",
+        "success"
+      );
+
+      expenseForm.reset();
+
+      await refresh();
+
+    } catch (error) {
+      showAlert(error.message);
+      console.error(error);
+
+    } finally {
+      hideSpinner();
+    }
+  }
+);
+
+
+// =========================
+// Export CSV
+// =========================
+
 function exportToCSV(list) {
   if (list.length === 0) {
-    showAlert("There are no expenses to export.");
+    showAlert(
+      "There are no expenses to export."
+    );
+
     return;
   }
 
@@ -397,18 +673,24 @@ function exportToCSV(list) {
 
   const blob = new Blob(
     [csvContent],
-    { type: "text/csv;charset=utf-8;" }
+    {
+      type: "text/csv;charset=utf-8;"
+    }
   );
 
-  const url = URL.createObjectURL(blob);
+  const url =
+    URL.createObjectURL(blob);
 
-  const link = document.createElement("a");
+  const link =
+    document.createElement("a");
 
   link.href = url;
   link.download = "expenses.csv";
 
   document.body.appendChild(link);
+
   link.click();
+
   document.body.removeChild(link);
 
   URL.revokeObjectURL(url);
@@ -419,166 +701,73 @@ function exportToCSV(list) {
   );
 }
 
-// Refresh data from server
-async function refresh() {
-  expenses = await getExpenses();
 
-  renderTable(expenses);
-  renderSummary(expenses);
-  renderChart(expenses);
-}
+exportCsvBtn.addEventListener(
+  "click",
+  () => {
+    const filteredExpenses =
+      getFilteredExpenses();
 
-
-// Search and filter expenses
-function applyFilters() {
-  const selectedCategory = categoryFilter.value;
-  const searchTerm = searchInput.value.trim().toLowerCase();
-
-  const filteredExpenses = expenses.filter((expense) => {
-    const matchesCategory =
-      selectedCategory === "All" ||
-      expense.category === selectedCategory;
-
-    const matchesSearch =
-      expense.title.toLowerCase().includes(searchTerm) ||
-      expense.category.toLowerCase().includes(searchTerm);
-
-    return matchesCategory && matchesSearch;
-  });
-
-  renderTable(filteredExpenses);
-  renderSummary(filteredExpenses);
-  renderChart(filteredExpenses);
-}
-
-// Search and category filter events
-categoryFilter.addEventListener("change", applyFilters);
-searchInput.addEventListener("input", applyFilters);
-
-
-// Export CSV button
-exportCsvBtn.addEventListener("click", () => {
-  const selectedCategory = categoryFilter.value;
-  const searchTerm = searchInput.value.trim().toLowerCase();
-
-  const filteredExpenses = expenses.filter((expense) => {
-    const matchesCategory =
-      selectedCategory === "All" ||
-      expense.category === selectedCategory;
-
-    const matchesSearch =
-      expense.title.toLowerCase().includes(searchTerm) ||
-      expense.category.toLowerCase().includes(searchTerm);
-
-    return matchesCategory && matchesSearch;
-  });
-
-  exportToCSV(filteredExpenses);
-});
-
-// Add expense
-const expenseForm = document.getElementById("expenseForm");
-
-expenseForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-
-  const title = document.getElementById("title").value.trim();
-  const amount = Number(document.getElementById("amount").value);
-  const category = document.getElementById("category").value;
-  const date = document.getElementById("date").value;
-
-  // Frontend validation
-  if (!title) {
-    showAlert("Title is required.");
-    return;
+    exportToCSV(filteredExpenses);
   }
+);
 
-  if (!Number.isFinite(amount) || amount <= 0) {
-    showAlert("Amount must be greater than 0.");
-    return;
-  }
 
-  if (!category) {
-    showAlert("Category is required.");
-    return;
-  }
+// =========================
+// Dark Mode
+// =========================
 
-  if (!date) {
-    showAlert("Date is required.");
-    return;
-  }
-
-  try {
-    showSpinner();
-
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        title,
-        amount,
-        category,
-        date
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to add expense");
-    }
-
-    showAlert("Expense added successfully.", "success");
-
-    expenseForm.reset();
-
-    await refresh();
-
-  } catch (error) {
-    showAlert(error.message);
-    console.error(error);
-
-  } finally {
-    hideSpinner();
-  }
-});
-// Dark mode
 function updateThemeIcon() {
   const isDarkMode =
-    document.body.classList.contains("dark-mode");
+    document.body.classList.contains(
+      "dark-mode"
+    );
 
   themeToggle.innerHTML = isDarkMode
     ? '<i class="bi bi-sun-fill"></i>'
     : '<i class="bi bi-moon-fill"></i>';
 }
 
+
 function applySavedTheme() {
-  const savedTheme = localStorage.getItem("theme");
+  const savedTheme =
+    localStorage.getItem("theme");
 
   if (savedTheme === "dark") {
-    document.body.classList.add("dark-mode");
+    document.body.classList.add(
+      "dark-mode"
+    );
   }
 
   updateThemeIcon();
 }
 
-themeToggle.addEventListener("click", () => {
-  document.body.classList.toggle("dark-mode");
 
-  const isDarkMode =
-    document.body.classList.contains("dark-mode");
+themeToggle.addEventListener(
+  "click",
+  () => {
+    document.body.classList.toggle(
+      "dark-mode"
+    );
 
-  localStorage.setItem(
-    "theme",
-    isDarkMode ? "dark" : "light"
-  );
+    const isDarkMode =
+      document.body.classList.contains(
+        "dark-mode"
+      );
 
-  updateThemeIcon();
-});
+    localStorage.setItem(
+      "theme",
+      isDarkMode ? "dark" : "light"
+    );
+
+    updateThemeIcon();
+  }
+);
+
+
+// =========================
+// Initialization
+// =========================
 
 applySavedTheme();
-
-// Load expenses when page opens
 refresh();
